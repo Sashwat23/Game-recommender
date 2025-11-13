@@ -1,4 +1,4 @@
-﻿# Game Recommender (Spec2Game)
+﻿# Game Recommender
 
 A project that scans PC specs and recommends games using the RAWG API.
 
