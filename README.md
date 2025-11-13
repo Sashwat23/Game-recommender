@@ -15,3 +15,5 @@ pm start (or how you run your frontend/electron)
 - .env and 
 ode_modules are excluded from the repo.
 - Data powered by RAWG API.
+
+A demo video is included in this repository to demonstrate how the application works.
