@@ -1,0 +1,217 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Games</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{
+      --bg:#071023;
+      --card:#0b2636;
+      --accent:#0b5ed7; /* same as Scan PC button */
+      --muted:#9fb3c9;
+      --text:#e6eef6;
+      --accent-2:#10b981;
+    }
+    html,body{height:100%;margin:0;font-family:Inter, "Segoe UI", Roboto, Arial, sans-serif;background:linear-gradient(180deg,#031026 0%,#071023 100%);color:var(--text)}
+    .container{max-width:1100px;margin:20px auto;padding:16px;box-sizing:border-box}
+    .topbar{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+    .title {flex:1;text-align:center;font-size:20px;color:var(--accent);font-weight:700}
+    .back-btn {
+      background-color: var(--accent);
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+    }
+    .back-btn:hover{filter:brightness(.95)}
+    #refresh { background: var(--accent-2); border: none; color: #fff; padding:8px 12px; border-radius:8px; cursor:pointer }
+
+    #game-list { display:flex; flex-direction:column; gap:14px; margin-top:8px; padding-bottom:40px; }
+    .game-card {
+      display:flex;
+      gap:14px;
+      background:var(--card);
+      padding:12px;
+      border-radius:10px;
+      align-items:center;
+      box-shadow:0 8px 28px rgba(2,6,23,0.45);
+    }
+    .thumb {
+      width:160px;
+      height:90px;
+      object-fit:cover;
+      background:#02121a;
+      border-radius:8px;
+      flex:0 0 160px;
+    }
+    .info {
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      min-width:0;
+    }
+    .info h3 { margin:0; font-size:16px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+    .meta { color:var(--muted); font-size:13px; display:flex; gap:10px; flex-wrap:wrap }
+    .desc { color:#cfe6f6; font-size:13px; margin-top:6px; max-width:700px; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical }
+    .stores { margin-top:6px; display:flex; gap:8px; align-items:center }
+    .store-badge { padding:5px 8px; border-radius:6px; background:rgba(255,255,255,0.03); color:var(--muted); font-size:12px; border:1px solid rgba(255,255,255,0.02) }
+    .view-link { margin-left:auto; color:#38bdf8; font-weight:700; text-decoration:none; padding:6px 8px; border-radius:6px; background:transparent; border:1px solid rgba(56,189,248,0.08) }
+
+    .placeholder { height:90px; width:160px; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:12px; border-radius:8px; background:#02121a }
+
+    .status { text-align:center; color:var(--muted); margin-top:28px }
+
+    @media (max-width:760px){
+      .game-card { flex-direction:column; align-items:flex-start; }
+      .thumb { width:100%; height:180px; flex:unset; }
+      .view-link { margin-left:0; margin-top:8px; }
+      .title { text-align:left }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <button class="back-btn" id="backBtn">← Back</button>
+      <div class="title">Recommended Games</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="refresh">Refresh</button>
+      </div>
+    </div>
+
+    <div id="game-list" aria-live="polite"></div>
+    <div id="status" class="status">Loading games…</div>
+  </div>
+
+  <script>
+    const PROXY_BASE = 'http://localhost:3000';
+
+    const gameList = document.getElementById('game-list');
+    const status = document.getElementById('status');
+    const backBtn = document.getElementById('backBtn');
+    const refreshBtn = document.getElementById('refresh');
+
+    backBtn.addEventListener('click', () => {
+      // if running inside Electron this will navigate back; otherwise go to index.html
+      if (window.history.length > 1) window.history.back();
+      else window.location.href = 'index.html';
+    });
+    refreshBtn.addEventListener('click', () => loadGames());
+
+    function placeholder() {
+      const ph = document.createElement('div');
+      ph.className = 'placeholder';
+      ph.textContent = 'No image';
+      return ph;
+    }
+
+    function createCard(game) {
+      const card = document.createElement('div');
+      card.className = 'game-card';
+
+      // image
+      let imgEl;
+      if (game.background_image) {
+        imgEl = document.createElement('img');
+        imgEl.className = 'thumb';
+        imgEl.src = game.background_image;
+        imgEl.alt = game.name;
+        imgEl.onerror = () => {
+          if (imgEl && imgEl.parentNode) imgEl.replaceWith(placeholder());
+        };
+      } else {
+        imgEl = placeholder();
+      }
+
+      // info
+      const info = document.createElement('div');
+      info.className = 'info';
+      const title = document.createElement('h3');
+      title.textContent = game.name;
+      info.appendChild(title);
+
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      const genres = (game.genres||[]).map(g=>g.name).slice(0,3).join(', ') || '—';
+      const released = game.released || game.released_at || '—';
+      const rating = (game.rating===undefined||game.rating===null) ? '—' : game.rating;
+      meta.innerHTML = `<div>Genre: ${genres}</div><div>Released: ${released}</div><div>Rating: ${rating}</div>`;
+      info.appendChild(meta);
+
+      // short description (if RAWG returned text) or empty
+      const desc = document.createElement('div');
+      desc.className = 'desc';
+      desc.textContent = (game.short_screenshots && game.short_screenshots.length)? '' : (game.slug || '');
+      info.appendChild(desc);
+
+      // stores badges (detect Steam/Epic)
+      const storesWrap = document.createElement('div');
+      storesWrap.className = 'stores';
+      if (Array.isArray(game.stores) && game.stores.length) {
+        game.stores.slice(0,4).forEach(s => {
+          const storeName = s.store && s.store.name ? s.store.name : (s.name || 'Store');
+          const badge = document.createElement('div');
+          badge.className = 'store-badge';
+          badge.textContent = storeName;
+          storesWrap.appendChild(badge);
+        });
+      } else {
+        // sometimes RAWG gives no stores in the list; show platform badges
+        const platforms = (game.platforms||[]).map(p => p.platform && p.platform.name ? p.platform.name : (p.name || '')).slice(0,4);
+        platforms.forEach(pn => {
+          const badge = document.createElement('div');
+          badge.className = 'store-badge';
+          badge.textContent = pn;
+          storesWrap.appendChild(badge);
+        });
+      }
+      info.appendChild(storesWrap);
+
+      // RAWG page link
+      const link = document.createElement('a');
+      link.className = 'view-link';
+      link.href = game.slug ? `https://rawg.io/games/${game.slug}` : `https://rawg.io`;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.textContent = 'Open';
+
+      card.appendChild(imgEl);
+      card.appendChild(info);
+      card.appendChild(link);
+      return card;
+    }
+
+    async function loadGames(pageSize = 18) {
+      gameList.innerHTML = '';
+      status.textContent = 'Loading games…';
+      try {
+        const url = `${PROXY_BASE}/api/games?page_size=${pageSize}`;
+        const r = await fetch(url);
+        if (!r.ok) throw new Error('Server returned ' + r.status);
+        const json = await r.json();
+        const results = json.results || [];
+        if (!results.length) {
+          status.textContent = 'No games found.';
+          return;
+        }
+        status.textContent = '';
+        results.forEach(g => {
+          gameList.appendChild(createCard(g));
+        });
+      } catch (err) {
+        console.error(err);
+        status.textContent = 'Failed to load games. Make sure server is running (node server.js).';
+      }
+    }
+
+    // initial load
+    loadGames();
+  </script>
+</body>
+</html>

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>GameScan — System Info</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg: #051025;
+      --surface: #07182a;
+      --card: #0b2636;
+      --accent: #38bdf8;
+      --text: #e6eef6;
+      --muted: #9fb3c9;
+      --card-radius: 12px;
+      --card-padding: 14px;
+    }
+
+    html,body{
+      height:100%;
+      margin:0;
+      font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+      background: linear-gradient(180deg,#031026 0%,#071023 100%);
+      color:var(--text);
+    }
+
+    .app {
+      min-height:100%;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:flex-start;
+      padding:28px 18px;
+      box-sizing:border-box;
+    }
+
+    header {
+      text-align:center;
+      margin-bottom:18px;
+    }
+    header h1 {
+      margin:0;
+      color:var(--accent);
+      font-size:24px;
+      letter-spacing:0.2px;
+    }
+    header p { margin:6px 0 0; color:var(--muted); font-size:13px; }
+
+    .controls { margin: 14px 0 18px; }
+    .btn {
+      background:var(--accent);
+      color:#022;
+      border:none;
+      padding:10px 14px;
+      border-radius:10px;
+      cursor:pointer;
+      font-weight:600;
+      box-shadow:0 6px 18px rgba(56,189,248,0.08);
+    }
+
+    .get-games-btn {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  transition: all 0.3s ease;
+}
+
+.get-games-btn:hover {
+  background-color: #45a049;
+  transform: scale(1.05);
+}
+
+
+    /* CENTER AREA: cards in the middle */
+    .center-wrap {
+      width:100%;
+      max-width:980px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:18px;
+    }
+
+    .cards {
+      display:flex;
+      gap:18px;
+      justify-content:center;
+      align-items:flex-start;
+      flex-wrap:wrap;
+      width:100%;
+      box-sizing:border-box;
+    }
+
+    .card {
+      background:var(--card);
+      border-radius:var(--card-radius);
+      padding:var(--card-padding);
+      width:240px;
+      min-height:120px;
+      box-shadow:0 6px 24px rgba(2,6,23,0.45);
+      display:flex;
+      flex-direction:column;
+      justify-content:flex-start;
+      transition: transform .12s ease;
+    }
+    .card:hover { transform: translateY(-4px); }
+
+    .card h3 { margin:0 0 8px; color:var(--accent); font-size:16px; }
+    .card pre {
+      margin:0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      font-size:13px;
+      line-height:1.25;
+      color:var(--text);
+    }
+    .muted { color:var(--muted); font-size:12.5px; margin-top:8px; }
+
+    /* DRIVES: placed under the cards, centered */
+    .drives-wrap {
+      width:100%;
+      max-width:980px;
+      margin-top:8px;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding-top:8px;
+    }
+
+    .drive-list {
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      align-items:center;
+      width:100%;
+      box-sizing:border-box;
+    }
+
+    .drive-row {
+      width:560px;
+      background:#071a2a;
+      padding:12px;
+      border-radius:10px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      box-shadow: 0 6px 18px rgba(2,6,23,0.35);
+    }
+    .drive-name { font-weight:700; color:#bfeefc; }
+    .drive-stats { color:var(--muted); font-size:13px; display:flex; align-items:center; gap:12px; }
+
+    .progress {
+      height:10px;
+      background:#062836;
+      border-radius:6px;
+      overflow:hidden;
+      width:200px;
+    }
+    .progress > i { display:block; height:100%; background: linear-gradient(90deg,var(--accent),#7dd3fc); }
+
+    /* Small / mobile adjustments */
+    @media (max-width:760px) {
+      .card { width:92%; }
+      .cards { flex-direction:column; align-items:center; gap:12px; }
+      .drive-row { width:92%; }
+      .drive-stats { font-size:12px; gap:8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>GameScan</h1>
+      <p>Your PC details</p>
+    </header>
+
+    <div class="controls">
+      <button id="scan-btn" class="btn">Scan PC</button>
+      <button id="getGamesBtn" class="get-games-btn">Get Games</button>
+    </div>
+
+    <div class="center-wrap">
+      <!-- centered cards -->
+      <div id="cards" class="cards" role="region" aria-label="System cards">
+        <!-- cards injected here by renderer.js -->
+      </div>
+
+      <!-- drives placed under the cards -->
+      <div class="drives-wrap">
+        <div id="drive-list" class="drive-list" role="region" aria-label="Drives">
+          <!-- drive rows injected here by renderer.js -->
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="renderer.js"></script>
+  <script>
+document.getElementById("getGamesBtn").addEventListener("click", () => {
+  window.location.href = "games.html";  // Go to the new page
+});
+</script>
+<!-- GET GAMES BUTTON (hidden by default) -->
+<button id="getGamesBtn" class="get-games-btn" style="display:none">Get Games</button>
+
+<style>
+/* place this in your existing <style> block (or keep inline) */
+.get-games-btn {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  background-color: #10b981; /* teal-green */
+  color: #022;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 18px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(2,6,23,0.45);
+  transition: transform .12s ease, opacity .12s ease;
+  z-index: 9999;
+}
+.get-games-btn:hover { transform: translateY(-3px); }
+</style>
+
+</body>
+</html>
